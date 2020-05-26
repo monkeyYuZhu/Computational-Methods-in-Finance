@@ -29,6 +29,8 @@ amzn_9mp = pd.read_csv(r"D:\Academic\FE 621 Computational Methods in Finance\HW1
 # Application of Black-Scholes model - calcualte implied volatility (volatility)
 # implement the Bisection method to find the root of arbitrary functions
 # f(x) = Cbs(s0, k, T, r, x) - (B + A)/2
+
+# the bisection method
 def bisection(f, left=0, right=1, tolerance= 10**(-6)):
     
     root = None
@@ -58,6 +60,48 @@ def bisection(f, left=0, right=1, tolerance= 10**(-6)):
         root = (left + right)*0.5
     
     return root
+
+# the secant method
+def secant(f, x0, x1, iteration, tolerance=10**(-6)):
+    
+    if x1 - x0 > tolerance:
+        for i in range(iteration):
+            try:
+                x2 = x1 - f(x1)*(x1 - x0)/float(f(x1) - f(x0))*1.0
+                x0, x1 = x1, x2
+            except:
+                break
+    root = x2
+    return root
+    
+def voltable_secant(source, tau, call, put):
+    
+    def targetfun(sigma):
+        result = blackscholes(sigma, s0=948.23, tau=tau, k=source['Strike'][i], r=0.0091, c=call, p=put) - (source['Bid'][i] + source['Ask'][i])* 0.5
+        return result
+    
+    k_list = []
+    bid_list = []
+    ask_list = []
+    vol_list = []
+    vol_dic = {}
+    for i in range(len(source.index)):
+        k_list.append(source['Strike'][i])
+        bid_list.append(source['Bid'][i])
+        ask_list.append(source['Ask'][i])
+        vol_list.append(secant(targetfun, 0, 1, 5)) # number of iteration need to be considered carefully
+    
+    vol_dic['Strike'] = k_list
+    vol_dic['Bid'] = bid_list
+    vol_dic['Ask'] = ask_list    
+    vol_dic['Implied Volatility'] = vol_list
+    vol_dic['Time to Maturity'] = tau/252
+    
+    vol_table = pd.DataFrame(vol_dic)
+    return vol_table 
+
+vol_dic1_c_secant = voltable_secant(source = amzn_3mc, tau=47, call=True, put=False)
+
 
 #===================================================================================================================
 #option implied volatility calculation
@@ -144,7 +188,7 @@ plt.legend()
 # volatility
 #time to np.linspace(47/252, 109/252, num=20)
 completetable = vol_dic1_c.append(vol_dic2_c.append(vol_dic3_c))
-completetable = vol_dic1_p.append(vol_dic2_p.append(vol_dic3_p))
+#completetable = vol_dic1_p.append(vol_dic2_p.append(vol_dic3_p))
 x = completetable['Strike'] 
 y = completetable['Time to Maturity']
 z = completetable['Implied Volatility']
@@ -168,7 +212,7 @@ def mesh_plot2(x, y, z, fig, ax):
 def combine_plots(x, y, z):
     plt.style.use('fivethirtyeight')
     fig = plt.figure(figsize=(15,10))
-    ax = Axes3D(fig, azim = -45, elev = 10)
+    ax = Axes3D(fig, azim = -65, elev = 10)
     mesh_plot2(x, y, z, fig, ax)
     ax.xaxis.set_rotate_label(False)
     ax.yaxis.set_rotate_label(False)
@@ -177,10 +221,7 @@ def combine_plots(x, y, z):
     ax.zaxis.set_major_formatter(mtick.PercentFormatter(xmax=1, decimals = None, symbol='%'))
     ax.set_title("AMZN Implied Volatility Surface", pad=0.5)
     plt.show()    
-    
+
+# draw the plot
 combine_plots(x, y, z)
-
-
-
-
 
