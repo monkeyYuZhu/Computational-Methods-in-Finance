@@ -8,8 +8,15 @@ There are two approaches to calculate Greeks: analytical function and finite dif
 """
 #===================================================================================================================
 import numpy as np
+import pandas as pd
 import math
 from scipy.stats import norm
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
+from scipy.interpolate import griddata
+import matplotlib.ticker as mtick
 
 #===================================================================================================================
 '''
@@ -88,16 +95,234 @@ def greeks(s0, k, r, rf, sigma, T, c, p):
     
 #===================================================================================================================
 # testing
-
+'''
 try:
-    result = greeks(s0=0.8, k=0.81, r=0.08, rf=0.05, sigma=0.15, T=7/12, c=True, p=False)
+    result = greeks(s0=948.23, k=900, r=0.0091, rf=0, sigma=0.165751, T=0.186508, c=True, p=False)
     print(result)
 except:
     print("Error found.")
 finally:
     print("Testing finished.")
+'''
+#===================================================================================================================
+# the method to put all the greeks into a table given unique implied volatility and strike price
+def greekTable(source, s0=948.23, r=0.0091, rf=0, tau=47, c=True, p=False):
+    
+    T = tau/252
+    greek_list = []
+    for i in range(len(source.index)):
+        result = greeks(s0=s0, k=source['Strike'][i], r=r, rf=rf, sigma=source['Implied Volatility'][i], T=T, c=c, p=p)
+        greek_list.append(result)
+
+    greek_table = pd.DataFrame(greek_list)
+    
+    return greek_table
+
+#===================================================================================================================
+# testing
+'''
+try:
+    result = greekTable(source=vol_dic1_c, s0=948.23, r=0.0091, rf=0, tau=47, c=True, p=False)
+    print(result)
+except:
+    print("Error found.")
+finally:
+    print("Testing finished.")
+'''
 
 #===================================================================================================================
 
+greek_table_c_1 = greekTable(source=vol_dic1_c, s0=948.23, r=0.0091, rf=0, tau=47, c=True, p=False)
+greek_table_c_2 = greekTable(source=vol_dic2_c, s0=948.23, r=0.0091, rf=0, tau=81, c=True, p=False)
+greek_table_c_3 = greekTable(source=vol_dic3_c, s0=948.23, r=0.0091, rf=0, tau=109, c=True, p=False)
+greek_table_p_1 = greekTable(source=vol_dic1_p, s0=948.23, r=0.0091, rf=0, tau=47, c=False, p=True)
+greek_table_p_2 = greekTable(source=vol_dic2_p, s0=948.23, r=0.0091, rf=0, tau=81, c=False, p=True)
+greek_table_p_3 = greekTable(source=vol_dic3_p, s0=948.23, r=0.0091, rf=0, tau=109, c=False, p=True)
+
+# call delta
+plt.figure(figsize=(10,6))
+plt.style.use('bmh')
+mpl.rcParams['lines.linewidth'] = 5
+mpl.rcParams['lines.linestyle'] = '-'
+plt.plot(greek_table_c_1['Strike'], greek_table_c_1['Delta'], label='Call: 1 month')
+plt.plot(greek_table_c_2['Strike'], greek_table_c_2['Delta'], label='Call: 2 month')
+plt.plot(greek_table_c_3['Strike'], greek_table_c_3['Delta'], label='Call: 3 month')
+plt.xlabel("Strike Price")
+plt.ylabel("Delta")
+plt.title("AMZN Call Delta Variation")
+plt.legend()
+
+# put delta
+plt.figure(figsize=(10,6))
+plt.style.use('bmh')
+mpl.rcParams['lines.linewidth'] = 5
+mpl.rcParams['lines.linestyle'] = '-'
+plt.plot(greek_table_p_1['Strike'], greek_table_p_1['Delta'], label='Put: 1 month')
+plt.plot(greek_table_p_2['Strike'], greek_table_p_2['Delta'], label='Put: 2 month')
+plt.plot(greek_table_p_3['Strike'], greek_table_p_3['Delta'], label='Put: 3 month')
+plt.xlabel("Strike Price")
+plt.ylabel("Delta")
+plt.title("AMZN Put Delta Variation")
+plt.legend()
+
+# call theta
+plt.figure(figsize=(10,8))
+plt.style.use('ggplot')
+mpl.rcParams['lines.linewidth'] = 5
+mpl.rcParams['lines.linestyle'] = '--'
+plt.plot(greek_table_c_1['Strike'], greek_table_c_1['Theta'], label='Call: 1 month')
+plt.plot(greek_table_c_2['Strike'], greek_table_c_2['Theta'], label='Call: 2 month')
+plt.plot(greek_table_c_3['Strike'], greek_table_c_3['Theta'], label='Call: 3 month')
+plt.xlabel("Strike Price")
+plt.ylabel("Theta")
+plt.title("AMZN Call Theta Variation")
+plt.legend()
+
+# put theta
+plt.figure(figsize=(10,8))
+plt.style.use('ggplot')
+mpl.rcParams['lines.linewidth'] = 5
+mpl.rcParams['lines.linestyle'] = '--'
+plt.plot(greek_table_p_1['Strike'], greek_table_p_1['Theta'], label='Put: 1 month')
+plt.plot(greek_table_p_2['Strike'], greek_table_p_2['Theta'], label='Put: 2 month')
+plt.plot(greek_table_p_3['Strike'], greek_table_p_3['Theta'], label='Put: 3 month')
+plt.xlabel("Strike Price")
+plt.ylabel("Theta")
+plt.title("AMZN Put Theta Variation")
+plt.legend()
 
 
+# call gamma
+plt.figure(figsize=(10,8))
+plt.style.use('ggplot')
+mpl.rcParams['lines.linewidth'] = 5
+mpl.rcParams['lines.linestyle'] = '--'
+plt.plot(greek_table_c_1['Strike'], greek_table_c_1['Gamma'], label='Call: 1 month')
+plt.plot(greek_table_c_2['Strike'], greek_table_c_2['Gamma'], label='Call: 2 month')
+plt.plot(greek_table_c_3['Strike'], greek_table_c_3['Gamma'], label='Call: 3 month')
+plt.xlabel("Strike Price")
+plt.ylabel("Gamma")
+plt.title("AMZN Call Gamma Variation")
+plt.legend()
+
+# put gamma
+plt.figure(figsize=(10,8))
+plt.style.use('ggplot')
+mpl.rcParams['lines.linewidth'] = 5
+mpl.rcParams['lines.linestyle'] = '--'
+plt.plot(greek_table_p_1['Strike'], greek_table_p_1['Gamma'], label='Put: 1 month')
+plt.plot(greek_table_p_2['Strike'], greek_table_p_2['Gamma'], label='Put: 2 month')
+plt.plot(greek_table_p_3['Strike'], greek_table_p_3['Gamma'], label='Put: 3 month')
+plt.xlabel("Strike Price")
+plt.ylabel("Gamma")
+plt.title("AMZN Put Gamma Variation")
+plt.legend()
+
+
+# call vega
+plt.figure(figsize=(10,8))
+plt.style.use('ggplot')
+mpl.rcParams['lines.linewidth'] = 5
+mpl.rcParams['lines.linestyle'] = '--'
+plt.plot(greek_table_c_1['Strike'], greek_table_c_1['Vega'], label='Call: 1 month')
+plt.plot(greek_table_c_2['Strike'], greek_table_c_2['Vega'], label='Call: 2 month')
+plt.plot(greek_table_c_3['Strike'], greek_table_c_3['Vega'], label='Call: 3 month')
+plt.xlabel("Strike Price")
+plt.ylabel("Vega")
+plt.title("AMZN Call Vega Variation")
+plt.legend()
+
+
+# put vega
+plt.figure(figsize=(10,8))
+plt.style.use('ggplot')
+mpl.rcParams['lines.linewidth'] = 5
+mpl.rcParams['lines.linestyle'] = '--'
+plt.plot(greek_table_p_1['Strike'], greek_table_p_1['Vega'], label='Put: 1 month')
+plt.plot(greek_table_p_2['Strike'], greek_table_p_2['Vega'], label='Put: 2 month')
+plt.plot(greek_table_p_3['Strike'], greek_table_p_3['Vega'], label='Put: 3 month')
+plt.xlabel("Strike Price")
+plt.ylabel("Vega")
+plt.title("AMZN Put Vega Variation")
+plt.legend()
+
+
+# call rho
+plt.figure(figsize=(10,8))
+plt.style.use('ggplot')
+mpl.rcParams['lines.linewidth'] = 5
+mpl.rcParams['lines.linestyle'] = '--'
+plt.plot(greek_table_c_1['Strike'], greek_table_c_1['Rho'], label='Call: 1 month')
+plt.plot(greek_table_c_2['Strike'], greek_table_c_2['Rho'], label='Call: 2 month')
+plt.plot(greek_table_c_3['Strike'], greek_table_c_3['Rho'], label='Call: 3 month')
+plt.xlabel("Strike Price")
+plt.ylabel("Rho")
+plt.title("AMZN Call Rho Variation")
+plt.legend()
+
+# put rho
+plt.figure(figsize=(10,8))
+plt.style.use('ggplot')
+mpl.rcParams['lines.linewidth'] = 5
+mpl.rcParams['lines.linestyle'] = '--'
+plt.plot(greek_table_p_1['Strike'], greek_table_p_1['Rho'], label='Put: 1 month')
+plt.plot(greek_table_p_2['Strike'], greek_table_p_2['Rho'], label='Put: 2 month')
+plt.plot(greek_table_p_3['Strike'], greek_table_p_3['Rho'], label='Put: 3 month')
+plt.xlabel("Strike Price")
+plt.ylabel("Rho")
+plt.title("AMZN Put Rho Variation")
+plt.legend()
+
+## call gamma vs. delta
+plt.figure(figsize=(12,7))
+plt.style.use('bmh')
+mpl.rcParams['lines.linewidth'] = 5
+mpl.rcParams['lines.linestyle'] = '-'
+plt.plot(greek_table_c_1['Strike'], greek_table_c_1['Delta'], label='Call: 1 month Delta')
+plt.plot(greek_table_c_2['Strike'], greek_table_c_2['Delta'], label='Call: 2 month Delta')
+plt.plot(greek_table_c_3['Strike'], greek_table_c_3['Delta'], label='Call: 3 month Delta')
+plt.plot(greek_table_p_1['Strike'], greek_table_p_1['Delta'], label='Put: 1 month Delta')
+plt.plot(greek_table_p_2['Strike'], greek_table_p_2['Delta'], label='Put: 2 month Delta')
+plt.plot(greek_table_p_3['Strike'], greek_table_p_3['Delta'], label='Put: 3 month Delta')
+plt.xlabel("Strike Price")
+plt.ylabel("Delta")
+plt.title("AMZN Delta Variation")
+plt.legend()
+
+
+completetable = greek_table_c_1.append(greek_table_c_2.append(greek_table_c_3))
+x = completetable['Strike'] 
+y = completetable['Time to Maturity']
+z = completetable['Vega']
+
+def plot3D(x, y, z, fig, ax):
+    ax.plot(x, y, z, 'o', color = 'pink')
+    ax.set_xlabel("Stock Price", rotation=0, fontsize=15, labelpad=30)
+    ax.set_ylabel("Time-to-Maturity (Years)", rotation=0, fontsize=15, labelpad=60)
+    ax.set_zlabel("Vega", rotation=0, fontsize=15, labelpad=25)
+    
+def make_surf(x, y, z):
+    xx, yy = np.meshgrid(np.linspace(min(x), max(x), 230), np.linspace(min(y), max(y), 230))
+    zz = griddata(np.array([x, y]).T, np.array(z), (xx, yy), method = 'linear')
+    return xx, yy, zz
+
+def mesh_plot2(x, y, z, fig, ax):
+    xx, yy, zz = make_surf(x, y, z)
+    ax.plot_surface(xx, yy, zz, cmap=cm.rainbow)
+    ax.contour(xx, yy, zz)
+    
+def combine_plots(x, y, z):
+    plt.style.use('fivethirtyeight')
+    fig = plt.figure(figsize=(13,10))
+    ax = Axes3D(fig, azim = -50, elev = 30)
+    mesh_plot2(x, y, z, fig, ax)
+    ax.xaxis.set_rotate_label(False)
+    ax.yaxis.set_rotate_label(False)
+    ax.zaxis.set_rotate_label(False)
+    plot3D(x, y, z, fig, ax)
+    #ax.zaxis.set_major_formatter(mtick.PercentFormatter(xmax=1, decimals = None, symbol='%'))
+    ax.set_title("AMZN Vega Surface", pad=1)
+    plt.show()    
+
+# draw the plot
+combine_plots(x, y, z)
